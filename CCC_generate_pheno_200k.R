@@ -291,3 +291,6 @@ write.table(new3F, "KidneyPhenoF.txt", quote = FALSE, row.names = FALSE)
 write.csv(resdat_inv, "KidneyPhenoFull.csv", quote = FALSE, row.names = FALSE)
 write.csv(resdat_invM, "KidneyPhenoM.csv", quote = FALSE, row.names = FALSE)
 write.csv(resdat_invF, "KidneyPhenoF.csv", quote = FALSE, row.names = FALSE)
+
+IDfinal<-new3$IID
+write.table(IDfinal, "KidneyPhenoIDFullFinal.txt", quote = FALSE, row.names = FALSE)
