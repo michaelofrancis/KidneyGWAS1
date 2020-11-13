@@ -212,11 +212,17 @@ for (p in 1:length(phenotypes)){
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
 resdat_inv<-matrix(NA,nrow(new2),length(phenotypes))
-colnames(resdat_inv)<-phenotypes
+colnames(resdat_inv)<-paste(phenotypes, "resinv", sep="_")
 
 for (i in 1:length(phenotypes)){
     resdat_inv[,i] <- qnorm((rank(resdat[,i], na.last="keep")-0.5)/sum(!is.na(resdat[,i])))
-    }
+}
+
+resdat_inv<-as_tibble(as.data.frame(resdat_inv))
+resdat_inv$IID<-new2$IID
+resdat_inv
+
+new3<-merge(new2, resdat_inv, by="IID")
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #SEX STRATIFIED --Regress phenotypes, extract residuals=-=-=-=-=-=-=-=
@@ -255,8 +261,8 @@ for (p in 1:length(phenotypes)){
 resdat_invM<-matrix(NA,nrow(new2M),length(phenotypes))
 resdat_invF<-matrix(NA,nrow(new2F),length(phenotypes))
 
-colnames(resdat_invM)<-phenotypes
-colnames(resdat_invF)<-phenotypes
+colnames(resdat_invM)<-paste(phenotypes, "resinv", sep="_")
+colnames(resdat_invF)<-paste(phenotypes, "resinv", sep="_")
 
 for (i in 1:length(phenotypes)){
     resdat_invM[,i] <- qnorm((rank(resdatM[,i], na.last="keep")-0.5)/sum(!is.na(resdatM[,i])))
@@ -266,17 +272,22 @@ for (i in 1:length(phenotypes)){
     resdat_invF[,i] <- qnorm((rank(resdatF[,i], na.last="keep")-0.5)/sum(!is.na(resdatF[,i])))
 }
 
+resdat_invM<-as_tibble(as.data.frame(resdat_invM))
+resdat_invM$IID<-new2M$IID
+new3M<-merge(new2M, resdat_invM, by="IID")
+
+resdat_invF<-as_tibble(as.data.frame(resdat_invF))
+resdat_invF$IID<-new2F$IID
+new3F<-merge(new2F, resdat_invF, by="IID")
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #Write Tables-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-write.table(resdat_inv, "resdat_inv.txt", quote = FALSE, row.names = FALSE)
-write.table(resdat_invM, "resdat_invM.txt", quote = FALSE, row.names = FALSE)
-write.table(resdat_invF, "resdat_invF.txt", quote = FALSE, row.names = FALSE)
+write.table(new3, "KidneyPhenoFull.txt", quote = FALSE, row.names = FALSE)
+write.table(new3M, "KidneyPhenoM.txt", quote = FALSE, row.names = FALSE)
+write.table(new3F, "KidneyPhenoF.txt", quote = FALSE, row.names = FALSE)
 
-write.csv(resdat_inv, "resdat_inv.csv", quote = FALSE, row.names = FALSE)
-write.csv(resdat_invM, "resdat_invM.csv", quote = FALSE, row.names = FALSE)
-write.csv(resdat_invF, "resdat_invF.csv", quote = FALSE, row.names = FALSE)
-
-
+write.csv(resdat_inv, "KidneyPhenoFull.csv", quote = FALSE, row.names = FALSE)
+write.csv(resdat_invM, "KidneyPhenoM.csv", quote = FALSE, row.names = FALSE)
+write.csv(resdat_invF, "KidneyPhenoF.csv", quote = FALSE, row.names = FALSE)
