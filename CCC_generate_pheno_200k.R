@@ -6,13 +6,13 @@ library(plyr)
 library(dplyr)
 library(tidyverse)
 library(DescTools)
-source('manyColsToDummy.R')
+source('../manyColsToDummy.R')
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #Load data-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-source('ukb34137_loaddata.r') #generates bd (UKB dataset)
+source('../ukb34137_loaddata.r') #generates bd (UKB dataset)
 
 ID<-read.table("ukb23155_c1_b0_v1_s200631.fam", header=FALSE, 
             stringsAsFactors=FALSE)
@@ -20,13 +20,18 @@ ID<-ID$V1
 
 bdkeep<-bd[bd$f.eid %in% ID,]
 
-bd_add<-read.table("ukb42606.tab",
+bd_add<-read.table("../ukb42606.tab",
                    header=TRUE, sep="\t")
 
 bd_add<-as_tibble(bd_add)
 
+wc<-read.table("waistcircumference.tab", header=TRUE, sep="\t")
+
+
 bdkeepfull<-inner_join(bdkeep, bd_add, by=c("f.eid", "f.22000.0.0"))
 bdkeepfull<-as_tibble(bdkeepfull)
+bdkeepfull<-inner_join(bdkeepfull, wc, by="f.eid")
+
 bdkeepfull
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -35,8 +40,7 @@ bdkeepfull
 
 #30700 = blood creatinine
 #30720 = blood Cystatin C
-#NEED TO ADD WAIST CIRCUMFERENCE COLUMN WHEN I GET IT
-#f.48.0.0, "Waist_circumference",
+
 
 new<-bdkeepfull%>%select(f.eid, f.31.0.0, f.21003.0.0, f.21000.0.0, 
                          f.30700.0.0, f.30720.0.0, f.21001.0.0,
@@ -45,7 +49,7 @@ new<-bdkeepfull%>%select(f.eid, f.31.0.0, f.21003.0.0, f.21000.0.0,
                          f.30750.0.0, f.30780.0.0, f.30760.0.0,
                          f.30870.0.0, f.30690.0.0,
                          f.22001.0.0, f.22027.0.0, f.22019.0.0, 
-                         f.22006.0.0
+                         f.22006.0.0, f.48.0.0
                          )
 
 colnames(new)<-c("IID", "Sex", "Age",  "Race",                   
@@ -55,14 +59,29 @@ colnames(new)<-c("IID", "Sex", "Age",  "Race",
                  "HbA1c", "LDL", "HDL",
                  "TAGs", "TC",
                  "Genetic_Sex","Outliers_for_het_or_missing", "SexchrAneuploidy",
-                 "Genetic_ethnic_grouping"
+                 "Genetic_ethnic_grouping", "Waist_circumference"
                 )
               
-
+#Age squared----------------------------
 new$Age2<-new$Age^2
 
    
 nrow(new) #Starting sample size = 200631
+
+#Make dummy 0/1 cols for each assessment center
+#table(pheno$Assessment_center)
+centers<-unique(new$Assessment_center)
+centercols<-paste("center", 1:22, sep="")
+new[centercols]<-0
+
+for (i in 1:length(centers)){
+    new[new$Assessment_center==centers[i],][centercols[i]]<-1
+}
+
+new<-new%>%select(-Assessment_center)
+new
+
+
 
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 #Apply QC-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -85,6 +104,7 @@ nrow(new) #166754. Number removed = 199
 new<-new[new$Sex == new$Genetic_Sex,] 
 nrow(new) #166753. Number removed = 1
 
+#Map sexes to 0/1 ----------------------------
 new$Sex<-mapvalues(as.character(new$Sex), 
                    c("Male", "Female"), c(1,2))
 
@@ -192,14 +212,21 @@ new2
 
 phenotypes<-c("Creatinine", "Cystatin_C", "eGFR1", "eGFR2", "eGFR3", 
               "eGFR4", "BMI", "SBP", "DBP", "HbA1c", "LDL", "HDL", 
-              "TAGs", "TC")
+              "TAGs", "TC", "Waist_circumference")
 
 resdat<-matrix(NA,nrow(new2),length(phenotypes))
 colnames(resdat)<-phenotypes
 
 for (p in 1:length(phenotypes)){
-    assign(paste("lm", phenotypes[p], sep="_"), lm(new2[[phenotypes[p]]] ~ Age + Age2 + 
-        Assessment_center + Sex, data=new2, na.action=na.exclude))
+    assign(paste("lm", phenotypes[p], sep="_"), 
+           lm(new2[[phenotypes[p]]] ~ Age + Age2 + 
+            center1 + center2 + center3 + center4 + 
+                center5 + center6 + center7 + center8 + 
+                center9 + center10 + center11 + center12 + 
+                center13 + center14 + center15 + center16 + 
+                center17 + center18 + center19 + center20 + 
+                center21 + Sex, data=new2, 
+        na.action=na.exclude))
     lmname<-paste("lm", phenotypes[p], sep="_")
     lmobj<-get(lmname)
     resdat[,p]<-resid(lmobj)
@@ -239,16 +266,28 @@ colnames(resdatM)<-phenotypes
 colnames(resdatF)<-phenotypes
 
 for (p in 1:length(phenotypes)){
-    assign(paste("lm", phenotypes[p], sep="_"), lm(new2M[[phenotypes[p]]] ~ Age + Age2 + 
-                Assessment_center, data=new2M, na.action=na.exclude))
+    assign(paste("lm", phenotypes[p], sep="_"), 
+           lm(new2M[[phenotypes[p]]] ~ Age + Age2 + 
+                  center1 + center2 + center3 + center4 + 
+                  center5 + center6 + center7 + center8 + 
+                  center9 + center10 + center11 + center12 + 
+                  center13 + center14 + center15 + center16 + 
+                  center17 + center18 + center19 + center20 + 
+                  center21, data=new2M, na.action=na.exclude))
     lmname<-paste("lm", phenotypes[p], sep="_")
     lmobj<-get(lmname)
     resdatM[,p]<-resid(lmobj)
 }
 
 for (p in 1:length(phenotypes)){
-    assign(paste("lm", phenotypes[p], sep="_"), lm(new2F[[phenotypes[p]]] ~ Age + Age2 + 
-                Assessment_center, data=new2F, na.action=na.exclude))
+    assign(paste("lm", phenotypes[p], sep="_"), 
+           lm(new2F[[phenotypes[p]]] ~ Age + Age2 + 
+                  center1 + center2 + center3 + center4 + 
+                  center5 + center6 + center7 + center8 + 
+                  center9 + center10 + center11 + center12 + 
+                  center13 + center14 + center15 + center16 + 
+                  center17 + center18 + center19 + center20 + 
+                  center21, data=new2F, na.action=na.exclude))
     lmname<-paste("lm", phenotypes[p], sep="_")
     lmobj<-get(lmname)
     resdatF[,p]<-resid(lmobj)
@@ -284,13 +323,13 @@ new3F<-merge(new2F, resdat_invF, by="IID")
 #Write Tables-=-=-=-=--=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 #-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
-write.table(new3, "KidneyPhenoFull.txt", quote = FALSE, row.names = FALSE)
-write.table(new3M, "KidneyPhenoM.txt", quote = FALSE, row.names = FALSE)
-write.table(new3F, "KidneyPhenoF.txt", quote = FALSE, row.names = FALSE)
+write.table(new3, "KidneyPhenoFull_02142021.txt", quote = FALSE, row.names = FALSE)
+write.table(new3M, "KidneyPhenoM_02142021.txt", quote = FALSE, row.names = FALSE)
+write.table(new3F, "KidneyPhenoF_02142021.txt", quote = FALSE, row.names = FALSE)
 
-write.csv(resdat_inv, "KidneyPhenoFull.csv", quote = FALSE, row.names = FALSE)
-write.csv(resdat_invM, "KidneyPhenoM.csv", quote = FALSE, row.names = FALSE)
-write.csv(resdat_invF, "KidneyPhenoF.csv", quote = FALSE, row.names = FALSE)
+write.csv(resdat_inv, "KidneyPhenoFull_02142021.csv", quote = FALSE, row.names = FALSE)
+write.csv(resdat_invM, "KidneyPhenoM_02142021.csv", quote = FALSE, row.names = FALSE)
+write.csv(resdat_invF, "KidneyPhenoF_02142021.csv", quote = FALSE, row.names = FALSE)
 
 IDfinal<-new3$IID
-write.table(IDfinal, "KidneyPhenoIDFullFinal.txt", quote = FALSE, row.names = FALSE)
+write.table(IDfinal, "KidneyPhenoIDFullFinal_02142021.txt", quote = FALSE, row.names = FALSE)
