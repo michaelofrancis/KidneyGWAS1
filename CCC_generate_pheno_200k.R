@@ -329,6 +329,9 @@ write.table(new3, "KidneyPhenoFull_02142021.txt", quote = FALSE, row.names = FAL
 write.table(new3M, "KidneyPhenoM_02142021.txt", quote = FALSE, row.names = FALSE)
 write.table(new3F, "KidneyPhenoF_02142021.txt", quote = FALSE, row.names = FALSE)
 
+write.csv(new3, "KidneyPhenoFull_04252021.csv", quote = FALSE, row.names = FALSE)
+
+
 write.csv(resdat_inv, "KidneyPhenoFull_02142021.csv", quote = FALSE, row.names = FALSE)
 write.csv(resdat_invM, "KidneyPhenoM_02142021.csv", quote = FALSE, row.names = FALSE)
 write.csv(resdat_invF, "KidneyPhenoF_02142021.csv", quote = FALSE, row.names = FALSE)
